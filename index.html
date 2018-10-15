@@ -1,0 +1,83 @@
+<html>
+<head>
+	<title>CS 3300 - Project 1</title>
+	<script src="https://d3js.org/d3.v4.min.js"></script>
+	<script src="http://d3js.org/topojson.v2.min.js"></script>
+
+	<style>
+		svg { background-color: #c8e1ff }
+	</style>
+</head>
+
+<body>
+<svg height="1000" width="1000">
+</svg>
+
+<script>
+
+var svg = d3.select("svg");
+var rawData;
+
+d3.json("boroughs.geo.json", function (error, data) {
+	rawData = data;
+
+	// Center the map on Manhattan and increased the scale
+	var projection = d3.geoMercator().center([-73.9712, 40.783]).scale(400000);
+	var path = d3.geoPath().projection(projection);
+
+	svg.selectAll("path.boroughs").data(data.features)
+		.enter()
+		.append('path')
+		.attr('d', path)
+		.attr('fill', '#f5f5f3')
+
+	d3.json("nyc-streets.geo.json", function (error, data) {
+		svg.selectAll("path.streets").data(data.features)
+		.enter()
+		.append('path')
+		.attr('d', path)
+		.attr('stroke', 'white')
+		.attr('stroke-width', '1px')
+		.attr('fill', 'none')
+		.attr('opacity', 0.85)
+
+		// Data from https://transit.land/feed-registry/operators/o-dr5r-nyct
+		d3.json("nycsubway.geojson", function (error, data) {
+			// Filter out some of the subway lines (6x, 7x, SIR, Q1, Q2...)
+			var filteredData = [];
+			for (var i = 0; i < data.features.length; i++) {
+				if (data.features[i].properties.name.length == 1) {
+					filteredData.push(data.features[i]);
+				}
+			}
+			svg.selectAll("path.subway").data(filteredData)
+				.enter()
+				.append('path')
+				.attr('d', path)
+				.attr('stroke', function(f){ 
+					return '#' + f.properties.color;
+				})
+				.attr('stroke-width', '4px')
+				.attr('fill', 'none')
+				.attr('opacity', 0.8)
+
+			d3.json("Subway Stations.geojson", function(error, data){
+				svg.selectAll("circle.station").data(data.features)
+					.enter()
+					.append('circle')
+					.attr('r', '3px')
+					.attr('cx', function(d){
+						return projection(d.geometry.coordinates)[0];
+					})
+					.attr('cy', function(d){
+						return projection(d.geometry.coordinates)[1];
+					})
+					.attr('fill', 'white')
+			});
+		});
+	});
+});
+</script>
+
+</body>
+</html>
